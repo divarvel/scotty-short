@@ -21,7 +21,7 @@ import           Data.UUID
 import           Data.UUID.V4
 import           Database.PostgreSQL.Simple
 import           Database.PostgreSQL.Simple.FromRow
-import           Network.HTTP.Types.Status (created201, status204, status401, status404)
+import           Network.HTTP.Types.Status (created201, status204, status401, status403, status404)
 import           Network.Wai (requestHeaderHost)
 import           System.Environment (getEnv)
 
@@ -87,7 +87,8 @@ ensureBasicAuth action = do
     givenCreds <- basicAuth
     case givenCreds of
         (Just adminCreds) -> action
-        Nothing -> status status401
+        (Just _) -> status status403
+        Nothing -> addHeader "WWW-Authenticate" "Basic realm=\"admin\"" >> status status401
 
 mkLink :: Domain -> T.Text -> T.Text -> IO Link
 mkLink (Domain domain_id _ _) code long_url = do
