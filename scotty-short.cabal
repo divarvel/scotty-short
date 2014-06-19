@@ -20,7 +20,7 @@ executable scotty-short
   -- other-modules:       
   -- other-extensions:    
   build-depends:
-       base >=4.6 && <4.7,
+       base >=4.6 && <4.8,
        scotty >=0.8 && <0.9,
        bytestring,
        text,
