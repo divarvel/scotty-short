@@ -22,6 +22,7 @@ executable scotty-short
   build-depends:
        base >=4.6 && <4.8,
        scotty >=0.8 && <0.9,
+       uuid-aeson,
        bytestring,
        text,
        http-types,

@@ -18,6 +18,7 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.Lazy as LT
 import           Data.UUID
+import           Data.UUID.Aeson
 import           Data.UUID.V4
 import           Database.PostgreSQL.Simple
 import           Database.PostgreSQL.Simple.FromRow
@@ -46,10 +47,6 @@ $(deriveToJSON defaultOptions ''Link)
 
 instance FromRow Link where
   fromRow = Link <$> field <*> field <*> field <*> field <*> field
-
-
-instance ToJSON UUID where
-    toJSON = String . T.pack . toString
 
 instance Parsable UUID where
   parseParam p = maybe (Left "") (Right) $ fromString (LT.unpack p)
