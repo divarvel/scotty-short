@@ -14,6 +14,7 @@ import           Data.ByteString.Char8 (unpack, split, pack)
 import           Data.Functor ((<$>))
 import           Data.Maybe (fromMaybe, listToMaybe)
 import           Data.Monoid ((<>))
+import           Data.Pool (createPool, withResource)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.Lazy as LT
@@ -57,6 +58,11 @@ credentials = do
     return (user, pwd)
 
 pgConn = connectPostgreSQL =<< pack <$> getEnv "CONNSTRING"
+pgPool = createPool pgConn close 1 10 10
+withPgConnection action = do
+    pool <- pgPool
+    withResource pool action
+
 
 
 basicAuth :: ActionM (Maybe (BS.ByteString, BS.ByteString))
@@ -152,37 +158,31 @@ removeLinkQuery = "delete from url where url_id = ?"
 
 getDomainByHostnameQuery = "select domain_id, hostname, name from domain  where hostname = ? limit 1"
 
-getAllLinks :: IO [Link] = do
-    conn <- pgConn
+getAllLinks :: IO [Link] = withPgConnection $ \conn -> do
     query_ conn "select url_id, domain_id, code, long_url, hits from url"
 
 getLinkByCode :: BS.ByteString -> T.Text -> IO (Maybe Link)
-getLinkByCode domain code = do
-    conn <- pgConn
+getLinkByCode domain code = withPgConnection $ \conn -> do
     listToMaybe <$> query conn getLinkByCodeQuery (code, domain)
 
 getLinkById :: UUID -> IO (Maybe Link)
-getLinkById link_id = do
-    conn <- pgConn
+getLinkById link_id = withPgConnection $ \conn -> do
     listToMaybe <$> query conn getLinkByIdQuery (Only link_id)
 
 updateLinkHits :: UUID -> IO ()
-updateLinkHits link_id = do
-    conn <- pgConn
+updateLinkHits link_id = withPgConnection $ \conn -> do
     const () <$> execute conn updateLinkHitsQuery (Only link_id)
 
 insertLink :: Link -> IO ()
-insertLink (Link l_id d_id code long_url hits) = do
-    conn <- pgConn
+insertLink (Link l_id d_id code long_url hits) = withPgConnection $ \conn -> do
     const () <$> execute conn createLinkQuery (l_id, d_id, code, long_url, hits)
 
 getDomainByHostname :: BS.ByteString -> IO (Maybe Domain)
-getDomainByHostname hostname = do
-    conn <- pgConn
+getDomainByHostname hostname = withPgConnection $ \conn -> do
     listToMaybe <$> query conn getDomainByHostnameQuery (Only hostname)
 
 removeLink :: UUID -> IO ()
-removeLink l_id = do
-    conn <- pgConn
+removeLink l_id = withPgConnection $ \conn -> do
     const () <$> execute conn removeLinkQuery (Only l_id)
+
 
