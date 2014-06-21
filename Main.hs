@@ -24,7 +24,7 @@ import           Data.UUID.V4
 import           Database.PostgreSQL.Simple
 import           Database.PostgreSQL.Simple.FromRow
 import           Network.HTTP.Types.Status (created201, status204, status401, status403, status404)
-import           Network.Wai (requestHeaderHost)
+import           Network.Wai (requestHeaderHost, requestMethod, responseLBS)
 import           System.Environment (getEnv)
 
 data Domain = Domain
