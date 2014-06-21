@@ -89,8 +89,7 @@ ensureBasicAuth action = do
     adminCreds <- liftIO $ credentials
     givenCreds <- basicAuth
     case givenCreds of
-        (Just adminCreds) -> action
-        (Just _) -> status status403
+        (Just cs) -> if cs == adminCreds then action else status status403
         Nothing -> addHeader "WWW-Authenticate" "Basic realm=\"admin\"" >> status status401
 
 mkLink :: Domain -> T.Text -> T.Text -> IO Link
