@@ -28,7 +28,7 @@ import           Network.Wai (requestHeaderHost, requestMethod, responseLBS)
 import           System.Environment (getEnv)
 
 data Domain = Domain
-    { domain_id :: UUID
+    { domainId :: UUID
     , hostname :: T.Text
     , name :: T.Text
     }
@@ -37,10 +37,10 @@ instance FromRow Domain where
   fromRow = Domain <$> field <*> field <*> field
 
 data Link = Link
-    { link_id :: UUID
-    , link_domain_id :: UUID
+    { linkId :: UUID
+    , linkDomainId :: UUID
     , code :: T.Text
-    , long_url :: T.Text
+    , longUrl :: T.Text
     , hits :: Integer
     } deriving (Show, Eq)
 
@@ -50,7 +50,7 @@ instance FromRow Link where
   fromRow = Link <$> field <*> field <*> field <*> field <*> field
 
 instance Parsable UUID where
-  parseParam p = maybe (Left "") (Right) $ fromString (LT.unpack p)
+  parseParam p = maybe (Left "") Right $ fromString (LT.unpack p)
 
 credentials = do
     user <- pack <$> getEnv "ADMIN_USER"
@@ -81,12 +81,12 @@ parseBasicAuth h = let
                 tup c = case c of
                     (x:y:_) -> Just (x, y)
                     _ -> Nothing
-            in (either (const Nothing) Just components) >>= tup
+            in either (const Nothing) Just components >>= tup
         else
             Nothing
 
 ensureBasicAuth action = do
-    adminCreds <- liftIO $ credentials
+    adminCreds <- liftIO credentials
     givenCreds <- basicAuth
     case givenCreds of
         (Just cs) -> if cs == adminCreds then action else status status403
@@ -97,12 +97,11 @@ mkLink (Domain domain_id _ _) code long_url = do
     id <- nextRandom
     return $ Link id domain_id code long_url 0
 
-main = scotty 8080 $ do
-  get "/" $ do
-    file "static/index.html"
 
-  get "/static/files/resume.pdf" $ do
-    file "static/resume.pdf"
+main = scotty 8080 $ do
+  get "/" $ file "static/index.html"
+
+  get "/static/files/resume.pdf" $ file "static/resume.pdf"
 
   post "/urls" $ ensureBasicAuth $ do
     code :: T.Text <- param "code"
@@ -139,8 +138,8 @@ main = scotty 8080 $ do
     mlink <- liftIO $ getLinkByCode hostname shorturl
     case mlink of
         (Just link) -> do
-            liftIO . updateLinkHits . link_id $ link
-            redirect . LT.fromStrict . long_url $ link
+            liftIO . updateLinkHits . linkId $ link
+            redirect . LT.fromStrict . longUrl $ link
         Nothing -> status status404
 
 
@@ -157,31 +156,31 @@ removeLinkQuery = "delete from url where url_id = ?"
 
 getDomainByHostnameQuery = "select domain_id, hostname, name from domain  where hostname = ? limit 1"
 
-getAllLinks :: IO [Link] = withPgConnection $ \conn -> do
+getAllLinks :: IO [Link] = withPgConnection $ \conn ->
     query_ conn "select url_id, domain_id, code, long_url, hits from url"
 
 getLinkByCode :: BS.ByteString -> T.Text -> IO (Maybe Link)
-getLinkByCode domain code = withPgConnection $ \conn -> do
+getLinkByCode domain code = withPgConnection $ \conn ->
     listToMaybe <$> query conn getLinkByCodeQuery (code, domain)
 
 getLinkById :: UUID -> IO (Maybe Link)
-getLinkById link_id = withPgConnection $ \conn -> do
+getLinkById link_id = withPgConnection $ \conn ->
     listToMaybe <$> query conn getLinkByIdQuery (Only link_id)
 
 updateLinkHits :: UUID -> IO ()
-updateLinkHits link_id = withPgConnection $ \conn -> do
+updateLinkHits link_id = withPgConnection $ \conn ->
     const () <$> execute conn updateLinkHitsQuery (Only link_id)
 
 insertLink :: Link -> IO ()
-insertLink (Link l_id d_id code long_url hits) = withPgConnection $ \conn -> do
+insertLink (Link l_id d_id code long_url hits) = withPgConnection $ \conn ->
     const () <$> execute conn createLinkQuery (l_id, d_id, code, long_url, hits)
 
 getDomainByHostname :: BS.ByteString -> IO (Maybe Domain)
-getDomainByHostname hostname = withPgConnection $ \conn -> do
+getDomainByHostname hostname = withPgConnection $ \conn ->
     listToMaybe <$> query conn getDomainByHostnameQuery (Only hostname)
 
 removeLink :: UUID -> IO ()
-removeLink l_id = withPgConnection $ \conn -> do
+removeLink l_id = withPgConnection $ \conn ->
     const () <$> execute conn removeLinkQuery (Only l_id)
 
 
