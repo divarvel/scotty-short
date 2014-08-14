@@ -14,9 +14,9 @@ ENV HOME /home/deploy
 WORKDIR /home/deploy/scotty-short
 
 RUN cabal update
-RUN cabal sandbox init
-RUN cabal install -j4 --only-dependencies
-RUN cabal build 
+ && cabal sandbox init
+ && cabal install -j4 --only-dependencies
+ && cabal build
 
 EXPOSE 8080
 
