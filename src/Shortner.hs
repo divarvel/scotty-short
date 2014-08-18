@@ -42,10 +42,6 @@ mkLink (Domain domain_id _ _) code long_url = do
 
 
 main = scotty 8080 $ do
-  get "/" $ file "static/index.html"
-
-  get "/static/files/resume.pdf" $ file "static/resume.pdf"
-
   post "/urls" $ ensureBasicAuth $ do
     code :: T.Text <- param "code"
     long_url :: T.Text <- param "long_url"
